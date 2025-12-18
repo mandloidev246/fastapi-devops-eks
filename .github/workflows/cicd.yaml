@@ -41,16 +41,22 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      - name: Update kubeconfig
+      - name: Setup kubeconfig
         run: |
+          mkdir -p $HOME/.kube
           aws eks update-kubeconfig \
-            --region ap-south-1 \
-            --name devops-eks-cluster
+          --region ap-south-1 \
+          --name devops-eks-cluster \
+          --kubeconfig $HOME/.kube/config
+          echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
 
-      - name: Verify cluster access
+      - name: Verify EKS access
         run: |
+          kubectl config get-contexts
           kubectl get nodes
 
       - name: Deploy using Helm
         run: |
+          helm version
+          kubectl get pods -A
           helm upgrade --install fastapi helm/fastapi
