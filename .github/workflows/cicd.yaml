@@ -5,10 +5,15 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write
+  contents: read
+
 env:
   AWS_REGION: ap-south-1
   EKS_CLUSTER_NAME: devops-eks-cluster
   DOCKER_IMAGE: devsdocker18/fastapi-api
+
   KUBECONFIG: /home/runner/.kube/config
 
 jobs:
@@ -38,10 +43,10 @@ jobs:
           tags: devsdocker18/fastapi-api:latest
 
       # 3️⃣ AWS authentication
-      - name: Configure AWS credentials (Assume Role)
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: arn:aws:iam::288206953637:role/github-actions-eks-role
           aws-region: ap-south-1
 
       # 4️⃣ Install kubectl
