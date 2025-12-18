@@ -9,16 +9,19 @@ env:
   AWS_REGION: ap-south-1
   EKS_CLUSTER_NAME: devops-eks-cluster
   DOCKER_IMAGE: devsdocker18/fastapi-api
+  KUBECONFIG: /home/runner/.kube/config
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker
+      # 2️⃣ Docker setup
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
@@ -34,6 +37,7 @@ jobs:
           push: true
           tags: devsdocker18/fastapi-api:latest
 
+      # 3️⃣ AWS authentication
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -41,22 +45,37 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      - name: Setup kubeconfig
+      # 4️⃣ Install kubectl
+      - name: Install kubectl
         run: |
-          mkdir -p $HOME/.kube
+          curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      # 5️⃣ Install Helm
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      # 6️⃣ Setup kubeconfig (EXPLICIT)
+      - name: Configure kubeconfig for EKS
+        run: |
+          mkdir -p ~/.kube
           aws eks update-kubeconfig \
-          --region ap-south-1 \
-          --name devops-eks-cluster \
-          --kubeconfig $HOME/.kube/config
+            --region $AWS_REGION \
+            --name $EKS_CLUSTER_NAME \
+            --kubeconfig ~/.kube/config
           echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
 
-      - name: Verify EKS access
+      # 7️⃣ Hard verification (NO GUESSING)
+      - name: Verify EKS authentication
         run: |
-          kubectl config get-contexts
+          aws sts get-caller-identity
+          kubectl version --short
+          kubectl config current-context
           kubectl get nodes
 
-      - name: Deploy using Helm
+      # 8️⃣ Helm deployment
+      - name: Deploy FastAPI using Helm
         run: |
-          helm version
-          kubectl get pods -A
           helm upgrade --install fastapi helm/fastapi
