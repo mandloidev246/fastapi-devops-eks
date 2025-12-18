@@ -75,7 +75,7 @@ jobs:
       - name: Verify EKS authentication
         run: |
           aws sts get-caller-identity
-          kubectl version --short
+          kubectl version
           kubectl config current-context
           kubectl get nodes
 
