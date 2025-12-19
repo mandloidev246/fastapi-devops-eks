@@ -66,9 +66,9 @@ jobs:
         run: |
           mkdir -p ~/.kube
           aws eks update-kubeconfig \
-            --region $AWS_REGION \
-            --name $EKS_CLUSTER_NAME \
-            --kubeconfig ~/.kube/config
+          --region ap-south-1 \
+          --name devops-eks-cluster \
+          --kubeconfig ~/.kube/config
           echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
 
       # 7️⃣ Hard verification (NO GUESSING)
